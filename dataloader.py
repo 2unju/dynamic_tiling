@@ -13,6 +13,9 @@ class FaceDetectionDataloader(Sequence):
         # self.labels = []
         self.labels = ground_truth()
         self.filenames = list(self.labels.keys())
+        with open("data/over_5_face.txt", "r") as fp:
+            self.filenames = fp.read()
+            self.filenames = self.filenames.split("\n")[:-1]
         self.path = img_data_path
         self.batch_size = batch_size
 
@@ -53,10 +56,13 @@ class FaceDetectionDataloader(Sequence):
             img[i] / 255,       # normalize
             [self.width, self.height]
         ) for i in range(len(img))]
-        batch_label = [self.resize_label(
-            self.labels[self.filenames[i]], img[_i].shape
-        ) for i, _i in zip(indices, range(len(img)))]
-        
+        # batch_label = [self.resize_label(
+        #     self.labels[self.filenames[i]], img[_i].shape
+        # ) for i, _i in zip(indices, range(len(img)))]
+        batch_label = [
+            self.labels[self.filenames[i]] for i in indices
+        ]
+
         filenames = [self.filenames[i] for i in indices]
 
         # return np.array(batch_img), np.array(batch_label), filenames, img
@@ -83,15 +89,14 @@ class StaticTilingDataloader(Sequence):
         self.filenames = list(self.labels.keys())
 
         # 데이터 개수 제한
-        # with open("data/under_5_face.txt", "r") as fp:
-        #     self.filenames = fp.read()
-        #     self.filenames = self.filenames.split("\n")[:-1]
+        with open("data/under_5_face.txt", "r") as fp:
+            self.filenames = fp.read()
+            self.filenames = self.filenames.split("\n")[:-1]
         self.path = img_data_path
         self.batch_size = batch_size
 
         self.n, self.m = tile_size
         self.width, self.height = image_size
-        print(tile_size)
         self.tile_size = list(tile_size)
 
     def __len__(self):
@@ -100,10 +105,10 @@ class StaticTilingDataloader(Sequence):
     def __getitem__(self, idx):
         indices = list(range(idx * self.batch_size, (idx + 1) * self.batch_size))
         batch_label = [self.labels[self.filenames[i]] for i in indices]
-
         imgs = [tf.io.decode_image(
             tf.io.read_file(f"{self.path}/{self.filenames[i]}")
         ) / 255 for i in indices]
+
         origin_size = [
             img.get_shape().as_list() for img in imgs
         ]
