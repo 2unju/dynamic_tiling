@@ -64,26 +64,16 @@ def resize_boundingbox(origin_bbx, origin_size, target_size):
     new_bbx = list(origin_bbx)
     origin_bbx = list(origin_bbx)
     for i in range(len(new_bbx)):
-        # new_bbx[i] = origin_bbx[(i+1)%2] / origin_size[(i+1)%2] * target_size[(i+1)%2]
         new_bbx[i] = origin_bbx[i] / origin_size[i % 2] * target_size[(i + 1) % 2]
-    # print(f"resized: {new_bbx}\n")
     return new_bbx
-    # return [new_bbx[1], new_bbx[0], new_bbx[3], new_bbx[2]]
 
 
 def _idx2boundingbox(w_idx, h_idx, width, height, output_width, output_height, origin_size):
-    # print(f"w_idx, h_idx: {w_idx, h_idx}")
-    # print(f"width, height: {width, height}")
-    # print(f"output_width, output_height: {output_width, output_height}")
-    # print(f"origin_size: {origin_size}")
-
     w = width / output_width
     h = height / output_height
     x = w_idx * w
     y = h_idx * h
-
-    # print(f"x, y, w, h: {x, y, w, h}")
-
+    
     x = x / width * origin_size[1]
     y = y / height * origin_size[0]
     w = w / width * origin_size[1]
@@ -92,17 +82,12 @@ def _idx2boundingbox(w_idx, h_idx, width, height, output_width, output_height, o
 
 
 def merge_tile(idx, origin_bb, tile_size, input_shape):
-    # print(f"origin_bb: {origin_bb}")
-
     new_bb = list(origin_bb)
     n, m = tile_size
     img_width, img_height = input_shape
-    # new_bb[0] += int(idx % (img_width / n)) * n
     new_bb[0] += int(idx % n) * img_width
-    # new_bb[1] += int(idx // (img_height / m)) * m
     new_bb[1] += int(idx // n) * img_height
 
-    # print(f"new_bb: {new_bb}")
     return new_bb
 
 
@@ -114,18 +99,15 @@ def isin(center, bbx):
 
 
 def get_iou_n_tp(boxes, pred):
-    # pred example: (341.3333333333333, 56.5, 85.33333333333333, 56.5)
     iou = 0.0
     tp = 0
     center = get_centroid(pred)
 
     for box in boxes:
-        # box example: [345 211   4   4]
         _iou = get_iou(pred, box)
         iou = max(iou, _iou)
         if not tp and isin(center, box):
             tp = 1
-
     return iou, tp
 
 

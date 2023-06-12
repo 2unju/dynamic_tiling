@@ -39,13 +39,10 @@ def evaluate(bb_gt_collection, dataloader, iou_threshold, detect):
     data_total_inference_time = 0
     data_total_recall = 0
 
-    os.makedirs(f"result/draw/static", exist_ok=True)
+    os.makedirs(f"result/draw/static_nor_test", exist_ok=True)
 
     # Evaluate face detector and iterate it over dataset
     for img, label, fn, ts, _os in tqdm(dataloader):
-        # print(f"Image Shape: {img.shape}")
-        # mode == common일 때 img의 shape는 (batch x 96 x 96 x 3)
-        
         start_time = time.time()
         if ts:
             face_pred = detect(img, ts, _os) # face_pred's shape: (batch x 12 x 12 x 2)
@@ -56,8 +53,7 @@ def evaluate(bb_gt_collection, dataloader, iou_threshold, detect):
         data_total_inference_time += inf_time
         total_gt_face = len(label[0])
 
-        # if iou_threshold == 0.1:
-        #     draw_n_save(fn[0], face_pred)
+        # draw_n_save(fn[0], face_pred)
 
         ### Calc average IOU, Precision, and Average inferencing time ####
         total_iou = 0
@@ -76,17 +72,10 @@ def evaluate(bb_gt_collection, dataloader, iou_threshold, detect):
                 # 찾은 face 개수 카운팅 -> precision 계산
                 if iou > pred_dict[i]:
                     tp += _tp
-                #     pred_dict[i] = iou
             total_iou += max_iou_per_gt
 
         if total_gt_face != 0:
             if len(pred_dict.keys()) > 0:
-                # for i in pred_dict:
-                #     if pred_dict[i] >= iou_threshold:
-                #         tp += 1
-
-                # print(f"tp: {tp}, total_gt_face: {total_gt_face}, face_pred: {len(face_pred)}")
-
                 precision = float(tp) / float(len(face_pred))
                 recall = float(tp) / float(total_gt_face)
 
@@ -107,7 +96,6 @@ def evaluate(bb_gt_collection, dataloader, iou_threshold, detect):
         total_data)
     result['average_inferencing_time'] = float(
         data_total_inference_time) / float(total_data)
-    # result['precision'] = data_total_precision
     result["recall"] = data_total_recall / float(total_data)
 
     return result
@@ -164,8 +152,10 @@ model.allocate_tensors()
 input_details = model.get_input_details()
 output_details = model.get_output_details()
 
-print(input_details, end="\n\n")
-print(output_details, end="\n\n")
+# print(json.dumps(input_details[0]), end="\n\n")
+# print(json.dumps(output_details[0]), end="\n\n")
+print(input_details[0], end="\n\n")
+print(output_details[0], end="\n\n")
 
 input_shape = input_details[0]["shape"]
 output_shape = output_details[0]["shape"]
@@ -179,14 +169,14 @@ output_width = output_shape[1]
 output_height = output_shape[2]
 
 batch_size = 1
-iou_threshold = 0.01
-tile_size = (2, 2)
+iou_threshold = 0.1
+tile_size = (5, 3)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["common", "static_tiling"])
     args = parser.parse_args()
-    
+
     if args.mode == "common":
         dataloader = FaceDetectionDataloader("data/valid", batch_size, (width, height))
         detect = common_detect
@@ -202,10 +192,11 @@ if __name__ == "__main__":
     mAP = []
     iou = []
     recall = []
-    threshold = np.arange(0.01, 0.15, 0.01)
+    threshold = np.arange(0.1, 1.0, 0.1)
     result = dict()
 
     # for t in threshold:
+    #     print(f"threshold: {t}")
     #     res = evaluate(ground_truth(), dataloader, t, detect)
     #
     #     mAP.append(res["mean_average_precision"])
@@ -214,11 +205,12 @@ if __name__ == "__main__":
     #     result[t] = res
     #
     #     print(json.dumps(res))
+    #     break
 
     res = evaluate(ground_truth(), dataloader, iou_threshold, detect)
     print(json.dumps(res))
-    with open(f"result/{args.mode}/under5_static.json", "w") as fp:
-        json.dump(res, fp, ensure_ascii=False)
+    # with open(f"result/{args.mode}/under5_static.json", "w") as fp:
+    #     json.dump(res, fp, ensure_ascii=False)
 
     # os.makedirs(f"result/{args.mode}", exist_ok=True)
     # with open(f"result/{args.mode}/{time.strftime('%Y%m%d%I%m', time.localtime())}.json", "w") as fp:
@@ -232,11 +224,11 @@ if __name__ == "__main__":
     # ax.set_xlabel("precision")
     # ax.set_ylabel("threshold")
     # ax.set_zlabel("recall")
-    # plt.savefig('result/_pr_curve_3d.png')
+    # plt.savefig('result/com_pr_curve_3d.png')
     #
     # fig = plt.figure(figsize=(9, 6))
     # plt.plot(mAP, recall)
     # plt.scatter(mAP, recall)
     # plt.xlabel("precision")
     # plt.ylabel("recall")
-    # plt.savefig('result/_pr_curve_2d.png')
+    # plt.savefig('result/com_pr_curve_2d.png')
